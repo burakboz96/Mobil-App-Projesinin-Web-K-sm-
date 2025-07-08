@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Piyasa Verileri</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    header {
+      background: #0052cc;
+      color: white;
+      padding: 1rem 1rem 0.75rem 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      user-select: none;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    #search {
+      width: 90%;
+      max-width: 400px;
+      margin: 1rem auto 1.5rem auto;
+      display: block;
+      padding: 0.6rem 1rem;
+      border-radius: 20px;
+      border: 1.5px solid #ccc;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    #search:focus {
+      border-color: #0052cc;
+      box-shadow: 0 0 8px rgba(0,82,204,0.5);
+    }
+    main#container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+      gap: 1rem;
+      max-width: 1200px;
+      margin: 0 auto 2rem auto;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+    }
+    .title {
+      color: #0052cc;
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 0.3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .subtitle {
+      font-weight: 600;
+      margin: 0.25rem 0;
+      font-size: 1rem;
+    }
+    .price {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .price.up {
+      color: #228B22; /* koyu yeşil */
+    }
+    .price.down {
+      color: #C00000; /* koyu kırmızı */
+    }
+    .rate {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .rate.up {
+      color: #228B22;
+    }
+    .rate.down {
+      color: #C00000;
+    }
+    .details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.4s ease;
+      font-size: 0.95rem;
+      color: #555;
+      margin-top: 0.8rem;
+      border-top: 1px solid #ddd;
+      padding: 0 0;
+    }
+    .details.open {
+      max-height: 120px; /* yeterince büyük yap */
+      padding: 0.8rem 0 0 0;
+    }
+    .time {
+      font-style: italic;
+      color: #888;
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+    }
+    #error {
+      color: red;
+      text-align: center;
+      margin: 1rem;
+      font-weight: 700;
+    }
+    #reload {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0052cc;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: background 0.3s ease;
+      user-select: none;
+      z-index: 2000;
+    }
+    #reload:hover {
+      background: #003d99;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Piyasa Verileri
+    <input type="text" id="search" placeholder="Ara..." aria-label="Hisse Ara" />
+  </header>
+
+  <main id="container" role="list"></main>
+  <div id="error" role="alert"></div>
+  <button id="reload" aria-label="Yenile">⟳</button>
+
+<script>
+  const apiKey = "6xCmksFJC4t1m8HLbaodaB:27tDYGQpJ70L7Y9F3RWEmH";
+  const url = "https://api.collectapi.com/economy/liveBorsa";
+  const container = document.getElementById("container");
+  const reloadBtn = document.getElementById("reload");
+  const searchInput = document.getElementById("search");
+  const errorDiv = document.getElementById("error");
+  let dataList = [];
+
+  async function fetchData() {
+    reloadBtn.disabled = true;
+    reloadBtn.textContent = "⏳";
+    errorDiv.textContent = "";
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "content-type": "application/json",
+          "authorization": "apikey " + apiKey
+        }
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+      dataList = json.result;
+      displayData(dataList);
+    } catch (e) {
+      errorDiv.textContent = "Hata: " + e.message;
+    } finally {
+      reloadBtn.disabled = false;
+      reloadBtn.textContent = "⟳";
+    }
+  }
+
+  function createCard(item, index) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("role", "listitem");
+    card.tabIndex = 0; // klavye erişimi
+
+    const upDownClassPrice = item.rate >= 0 ? "up" : "down";
+    const upDownClassRate = item.rate >= 0 ? "up" : "down";
+
+    card.innerHTML = `
+      <div class="title">${item.currency} – ${item.name} 
+        <span class="price ${upDownClassPrice}">${item.pricestr}</span>
+      </div>
+      <div class="rate ${upDownClassRate}">Değişim Oranı: ${item.rate.toFixed(2)}%</div>
+      <div class="time">Güncelleme: ${item.time}</div>
+      <div class="details" aria-hidden="true">
+        <p>Buraya detaylı grafik veya ekstra bilgiler gelecek.</p>
+      </div>
+    `;
+
+    // Açılıp kapanma toggle
+    card.addEventListener("click", () => {
+      const details = card.querySelector(".details");
+      const isOpen = details.classList.contains("open");
+      if (isOpen) {
+        details.classList.remove("open");
+        details.setAttribute("aria-hidden", "true");
+      } else {
+        // Önce diğer açıkları kapat
+        document.querySelectorAll(".details.open").forEach(el => {
+          el.classList.remove("open");
+          el.setAttribute("aria-hidden", "true");
+        });
+        details.classList.add("open");
+        details.setAttribute("aria-hidden", "false");
+      }
+    });
+
+    // Klavyeyle açma kapama için
+    card.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        card.click();
+      }
+    });
+
+    return card;
+  }
+
+  function displayData(list) {
+    container.innerHTML = "";
+    if (list.length === 0) {
+      container.innerHTML = "<p style='text-align:center;color:#777'>Veri bulunamadı.</p>";
+      return;
+    }
+    list.forEach((item, i) => {
+      container.appendChild(createCard(item, i));
+    });
+  }
+
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.trim().toLowerCase();
+    const filtered = dataList.filter(item =>
+      item.name.toLowerCase().includes(q) ||
+      item.currency.toLowerCase().includes(q)
+    );
+    displayData(filtered);
+  });
+
+  reloadBtn.addEventListener("click", fetchData);
+
+  // Otomatik her 1 saniyede veri yenile
+  let intervalId = setInterval(fetchData, 1000);
+
+  window.addEventListener("load", fetchData);
+</script>
+</body>
+</html>

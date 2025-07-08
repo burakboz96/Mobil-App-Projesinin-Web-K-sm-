@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kampanya Katılım</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(120deg, #dbefff, #ffffff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .form-container {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 400px;
+      animation: fadeInUp 1s ease;
+    }
+
+    h2 {
+      text-align: center;
+      color: #222;
+      margin-bottom: 20px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      margin-top: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .success-message {
+      margin-top: 20px;
+      text-align: center;
+      color: green;
+      font-weight: bold;
+    }
+
+    .counter {
+      margin-top: 10px;
+      text-align: center;
+      color: #444;
+      font-size: 14px;
+    }
+
+    @keyframes fadeInUp {
+      0% { transform: translateY(30px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-container">
+    <h2>Kampanyaya Katıl</h2>
+    <input type="text" id="name" placeholder="İsim Soyisim" />
+    <input type="email" id="email" placeholder="E-Posta" disabled />
+    <select id="city">
+      <option value="">Şehir Seçiniz</option>
+      <option value="İstanbul">İstanbul</option>
+      <option value="Ankara">Ankara</option>
+      <option value="İzmir">İzmir</option>
+      <option value="Bursa">Bursa</option>
+      <option value="Diğer">Diğer</option>
+    </select>
+    <textarea id="address" rows="3" placeholder="Adres"></textarea>
+    <button onclick="submitForm()">Katıl</button>
+    <div class="success-message" id="successMessage"></div>
+    <div class="counter" id="participantCount"></div>
+  </div>
+
+  <script>
+    // 🔧 Firebase config bilgilerinizi buraya girin
+    const firebaseConfig = {
+        apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+    authDomain: "mobilapp-7a324.firebaseapp.com",
+    projectId: "mobilapp-7a324",
+    appId: "1:274277984516:web:YOUR_APP_ID_HERE" // Console > Project settings'ten tam App ID'yi ekle!
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    let currentUser = null;
+
+    // Kullanıcı bilgilerini otomatik doldur
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('name').value = user.displayName || "";
+        document.getElementById('email').value = user.email;
+        updateCount();
+      } else {
+        alert("Lütfen giriş yapınız.");
+        window.location.href = "login.html"; // Giriş sayfanız varsa yönlendirme
+      }
+    });
+
+    function submitForm() {
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const city = document.getElementById('city').value;
+      const address = document.getElementById('address').value.trim();
+      const successMessage = document.getElementById('successMessage');
+
+      if (name && city && address) {
+        db.collection("participants").add({
+          uid: currentUser.uid,
+          name,
+          email,
+          city,
+          address,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+          successMessage.textContent = "BAŞARIYLA KATILDINIZ 🎉";
+          updateCount();
+        }).catch((error) => {
+          successMessage.textContent = "Hata: " + error.message;
+          successMessage.style.color = "red";
+        });
+      } else {
+        successMessage.textContent = "Lütfen tüm alanları doldurun.";
+        successMessage.style.color = "red";
+      }
+    }
+
+    function updateCount() {
+      db.collection("participants").get().then(snapshot => {
+        document.getElementById('participantCount').textContent =
+          `Toplam Katılan: ${snapshot.size}`;
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bildirim Paneli</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    #notification-panel1 {
+      font-size: 50px;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      color: rgb(1, 0, 0);
+      text-shadow: 4px 4px 20px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      font-weight: bold;
+    }
+    #notification-panel {
+      position: relative;
+      width: 520px;
+      height: 600px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+      overflow-y: auto;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      animation: fadeInUp 0.6s ease-out;
+      transform-style: preserve-3d;
+      display: none; /* Başta gizli */
+      z-index: 1500;
+    }
+    @keyframes fadeInUp {
+      0% { transform: translateY(40px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    h1 {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 22px;
+      color: #222;
+      user-select: none;
+    }
+    .notification-item {
+      background: white;
+      border-radius: 12px;
+      padding: 12px 15px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      animation: slideIn 0.4s ease;
+      transition: all 0.3s ease;
+      white-space: pre-wrap; /* Satır sonlarını koru */
+    }
+    .notification-item:hover {
+      transform: scale(1.02);
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .timestamp {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    #login-form {
+      position: absolute;
+      width: 340px;
+      background: #fff;
+      padding: 25px 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #login-form input {
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    #login-form button {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      color: white;
+      background: #007bff;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    #login-form button:hover {
+      background: #0056b3;
+    }
+    #logout-btn {
+      background: #dc3545;
+    }
+    #logout-btn:hover {
+      background: #a71d2a;
+    }
+    #status-msg {
+      font-size: 14px;
+      color: red;
+      min-height: 20px;
+    }
+   nav {
+      height: 100vh; /* Tam ekran yüksekliği */
+      width: 200px;
+      background-color: #f9f9f9;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      padding-top: 40px;
+      position: fixed; /* Sabit konum */
+      left: 0;
+      top: 0;
+    }
+
+    nav a {
+      margin: 0 15px 20px 15px; /* üst ve yan boşluklar */
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      position: relative;
+      transition: all 0.3s ease;
+      padding: 10px 0;
+      display: block;
+    }
+
+    nav a::after {
+      content: '';
+      position: absolute;
+      width: 0%;
+      height: 2px;
+      left: 0;
+      bottom: 0;
+      background: #007bff;
+      transition: 0.3s ease;
+    }
+
+    nav a:hover::after {
+      width: 100%;
+    }
+
+    nav a:hover {
+      color: #007bff;
+    }
+  </style>
+ 
+</head>
+<body>
+     <nav>
+      <a href="ana sayfa.html">ANASAYFA</a>
+      <a href="favori.html">FAVORİLER</a>
+      <a href="profil.html">PROFİL</a>
+      <a href="bildirimler.html">BİLDİRİMLER</a>
+      <a href="ayarlar.html">AYARLAR</a>
+    </nav>
+
+  <div id="notification-panel1">
+    <p> Bildirim Paneli</p>
+  </div>
+
+  <div id="login-form">
+    <h2 style="text-align:center; margin-bottom:10px;">Giriş Yap</h2>
+    <input type="email" id="email" placeholder="E-posta" />
+    <input type="password" id="password" placeholder="Şifre" />
+    <button id="login-btn">Giriş Yap</button>
+    <button id="logout-btn" style="display:none;">Çıkış Yap</button>
+    <p id="status-msg"></p>
+  </div>
+
+  <div id="notification-panel"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    document.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', e => {
+    const href = link.getAttribute('href');
+
+    // Eğer link bildirimler sayfası değilse (yani dış sayfa)
+    if (href && !href.includes('bildirimler.html')) {
+      e.preventDefault();
+      window.open(href, '_blank'); // Yeni sekmede aç
+      // Bildirimler sayfası olduğu sekme aynı kalır
+    }
+    // Eğer link bildirimler sayfasına yönlendiriyorsa normal davranır (sayfa yenilenir)
+  });
+});
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+      authDomain: "mobilapp-7a324.firebaseapp.com",
+      projectId: "mobilapp-7a324",
+      appId: "1:274277984516:web:YOUR_APP_ID_HERE"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const panel = document.getElementById('notification-panel');
+    const loginForm = document.getElementById('login-form');
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const statusMsg = document.getElementById('status-msg');
+
+    let unsub1 = null, unsub2 = null;
+    let previousDataMap = {}; // Kartların önceki durumlarını tutar
+ 
+
+
+    // Firestore Timestamp objesini insan okunabilir formata çevirir
+    function formatDate(value) {
+      if (!value) return 'Yok';
+      if (typeof value === 'object' && value.seconds !== undefined) {
+        const d = new Date(value.seconds * 1000);
+        return d.toLocaleDateString('tr-TR');
+      }
+      return value.toString();
+    }
+let notifications = [];
+
+function listenUserNotifications(userId) {
+  return db.collection('notifications')
+    .where('userId', '==', userId)
+    .orderBy('timestamp', 'desc')
+    .onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          notifications.unshift(data);  // En yeni en başta
+          if (notifications.length > 100) notifications.pop();
+          updateNotificationPanel();
+        }
+      });
+    });
+}
+
+
+function updateNotificationPanel() {
+  const panel = document.getElementById('notification-panel');
+  if (!panel) return;  // Panel sadece bildirim sayfasında var, diğer sayfalarda yok
+  panel.innerHTML = '';
+  notifications.forEach(data => {
+    const time = data.timestamp ? data.timestamp.toDate().toLocaleString('tr-TR') : 'Yeni';
+    const item = document.createElement('div');
+    item.className = 'notification-item';
+    item.innerHTML = `<div class="timestamp">${time}</div><div>${data.message}</div>`;
+    panel.appendChild(item);
+  });
+}
+    // Bildirim paneline mesaj ekler
+    function addNotification(msg) {
+      console.log('Bildirim ekleniyor:', msg); // Debug için
+      const item = document.createElement('div');
+      item.className = 'notification-item';
+
+      const now = new Date().toLocaleString('tr-TR');
+      item.innerHTML = `<div class="timestamp">${now}</div><div>${msg.replace(/\n/g, '<br>')}</div>`;
+      panel.appendChild(item);
+      panel.scrollTop = panel.scrollHeight;
+
+      // Bildirim sayısını 50 ile sınırla
+      if (panel.children.length > 50) {
+        panel.removeChild(panel.firstChild);
+      }
+    }
+
+    loginBtn.onclick = () => {
+      statusMsg.textContent = '';
+      auth.signInWithEmailAndPassword(email.value, password.value)
+        .catch(err => statusMsg.textContent = err.message);
+    }
+
+    logoutBtn.onclick = () => auth.signOut();
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginForm.style.display = 'none';
+        panel.style.display = 'block';
+        logoutBtn.style.display = 'block';
+        addNotification(`${user.email} ile giriş yapıldı.`);
+
+        if (unsub1) unsub1();
+        if (unsub2) unsub2();
+
+        previousDataMap = {}; // Önceki veri temizlendi
+
+        // Profil güncellemeleri dinleniyor
+        unsub1 = db.collection('users').doc(user.uid)
+          .onSnapshot(doc => {
+            if (doc.exists) {
+              addNotification('Profiliniz güncellendi.');
+            }
+          });
+
+        // Kart detayları dinleniyor
+        unsub2 = db.collection('users').doc(user.uid).collection('cardDetails')
+          .onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+              const docId = change.doc.id;
+
+              if (change.type === 'added') {
+                const data = change.doc.data();
+                previousDataMap[docId] = data;
+                const cardName = data.cardHolderName || 'Kart (İsimsiz)';
+                addNotification(`🟢 Yeni kart eklendi: ${cardName}`);
+
+              } else if (change.type === 'modified') {
+                const newData = change.doc.data();
+                const oldData = previousDataMap[docId] || {};
+
+                let changes = [];
+
+                if (oldData.cardHolderName !== newData.cardHolderName) {
+                  changes.push(`İsim: ${oldData.cardHolderName || 'Yok'} → ${newData.cardHolderName || 'Yok'}`);
+                }
+                if (oldData.cardNumber !== newData.cardNumber) {
+                  changes.push(`Kart No: ${oldData.cardNumber || 'Yok'} → ${newData.cardNumber || 'Yok'}`);
+                }
+                // expiryDate Timestamp objesi karşılaştırması için JSON.stringify kullanıyoruz
+                if (JSON.stringify(oldData.expiryDate) !== JSON.stringify(newData.expiryDate)) {
+                  changes.push(`Son Kullanma: ${formatDate(oldData.expiryDate)} → ${formatDate(newData.expiryDate)}`);
+                }
+                if (oldData.cvv !== newData.cvv) {
+                  changes.push(`CVV: ${oldData.cvv || 'Yok'} → ${newData.cvv || 'Yok'}`);
+                }
+
+                if (changes.length > 0) {
+                  addNotification(`🟡 Kart güncellendi:\n- ${changes.join('\n- ')}`);
+                } else {
+                  addNotification(`🟡 Kartta görünür bir değişiklik yok.`);
+                }
+
+                previousDataMap[docId] = newData;
+
+              } else if (change.type === 'removed') {
+                addNotification(`🔴 Kart silindi (ID: ${docId})`);
+                delete previousDataMap[docId];
+              }
+            });
+          });
+
+      } else {
+        loginForm.style.display = 'flex';
+        panel.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        statusMsg.textContent = '';
+        panel.innerHTML = '';
+        addNotification('Çıkış yapıldı.');
+        if (unsub1) unsub1();
+        if (unsub2) unsub2();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Yıldız Topla</title>
+  <style>
+    body {
+      background: #eaf3ff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      text-align: center;
+    }
+    h1 {
+      margin-top: 30px;
+      font-size: 28px;
+      color: #f4c700;
+    }
+    #points {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #000;
+      background: rgba(255, 255, 255, 0.6);
+      padding: 10px 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    #rewardArea {
+      width: 100%;
+      height: 400px;
+      position: relative;
+      margin-top: 40px;
+    }
+    #star {
+      width: 100px;
+      height: 100px;
+      background: gold;
+      clip-path: polygon(
+        50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
+        50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
+      );
+      box-shadow: 0 10px 20px rgba(255, 215, 0, 0.6);
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      transition: bottom 1s ease, opacity 1s ease;
+      cursor: pointer;
+    }
+    #star.collected { bottom: 100%; opacity: 0; }
+    #scoreText { margin-top: 20px; font-size: 20px; color: red; }
+    #timer { font-size: 18px; color: green; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <div id="points">Puan: 0</div>
+  <h1>Yıldız Topla</h1>
+
+  <div id="rewardArea">
+    <div id="star"></div>
+  </div>
+
+  <div id="scoreText">Puan: 0</div>
+  <div id="timer">Kalan Süre: 24 saat 0 dakika 0 saniye</div>
+
+  <!-- Firebase SDK v9 MODÜLER -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, collection, query,
+      where, getDocs, addDoc, Timestamp
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+      authDomain: "mobilapp-7a324.firebaseapp.com",
+      projectId: "mobilapp-7a324",
+      appId: "1:274277984516:web:YOUR_APP_ID" // TODO: Tam App ID'yi girin
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const starEl = document.getElementById('star');
+    const scoreText = document.getElementById('scoreText');
+    const pointsEl = document.getElementById('points');
+    const timerEl = document.getElementById('timer');
+
+    let userId = null;
+    let userPoints = 0;
+    let collectedToday = false;
+    let countdownInterval = null;
+
+    // Kullanıcı giriş yaptıysa
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        userId = user.uid;
+        initializeUser();
+      } else {
+        window.location.href = "login.html"; // Giriş yoksa yönlendir
+      }
+    });
+
+    async function initializeUser() {
+      const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        await setDoc(userRef, { score: 0, createdAt: Timestamp.now() });
+        userPoints = 0;
+      } else {
+        userPoints = userSnap.data().score || 0;
+      }
+      updateScoreText();
+      checkTodayStar();
+    }
+
+    async function checkTodayStar() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const starsRef = collection(db, "users", userId, "dailyStars");
+      const q = query(starsRef, where("yyyy-MM-dd", "==", todayStr));
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        collectedToday = true;
+        starEl.style.display = 'none';
+
+        const lastUpdated = snap.docs[0].data().lastUpdated.toDate();
+        const nextDay = new Date(lastUpdated.getTime() + 24 * 60 * 60 * 1000);
+        startCountdown(nextDay);
+      } else {
+        collectedToday = false;
+        startCountdown();
+      }
+    }
+
+    function updateScoreText() {
+      pointsEl.innerText = `Puan: ${userPoints}`;
+      scoreText.innerText = `Puan: ${userPoints}`;
+    }
+
+    function startCountdown(untilTime = null) {
+      if (countdownInterval) clearInterval(countdownInterval);
+      const end = untilTime || new Date(new Date().setHours(24, 0, 0, 0));
+
+      function updateTimer() {
+        const now = new Date();
+        const diff = end - now;
+
+        if (diff <= 0) {
+          timerEl.innerText = "🎉 Yeniden toplayabilirsiniz!";
+          starEl.style.display = 'block';
+          collectedToday = false;
+          clearInterval(countdownInterval);
+          return;
+        }
+
+        const hours = String(Math.floor(diff / 3600000)).padStart(2, '0');
+        const mins = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        const secs = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+
+        timerEl.innerText = `Kalan Süre: ${hours} saat ${mins} dakika ${secs} saniye`;
+      }
+
+      updateTimer();
+      countdownInterval = setInterval(updateTimer, 1000);
+    }
+
+    starEl.addEventListener('click', async () => {
+      if (collectedToday) {
+        alert("❌ Süre dolana kadar tekrar toplayamazsın!");
+        return;
+      }
+
+      collectedToday = true;
+      starEl.classList.add('collected');
+
+      setTimeout(() => {
+        starEl.style.display = 'none';
+        scoreText.innerText = "🎉 Bugünün yıldızını topladınız!";
+      }, 1000);
+
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      userPoints += 1;
+      updateScoreText();
+
+      await setDoc(doc(db, "users", userId), {
+        score: userPoints
+      }, { merge: true });
+
+      await addDoc(collection(db, "users", userId, "dailyStars"), {
+        score: userPoints,
+        lastUpdated: Timestamp.fromDate(now),
+        "yyyy-MM-dd": todayStr
+      });
+
+      const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      startCountdown(nextDay);
+    });
+  </script>
+</body>
+</html>

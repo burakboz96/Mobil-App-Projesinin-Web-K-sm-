@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profil</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <!-- TailwindCSS -->
+ <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .fade-in { animation: fadeInScale 0.3s ease forwards; }
+    .fade-out { animation: fadeOutScale 0.3s ease forwards; }
+    @keyframes fadeInScale {
+      0% {opacity:0; transform: scale(0.8);}
+      100% {opacity:1; transform: scale(1);}
+    }
+    @keyframes fadeOutScale {
+      0% {opacity:1; transform: scale(1);}
+      100% {opacity:0; transform: scale(0.8);}
+    }
+    .hover-scale {
+      transition: transform 0.2s;
+    }
+    .hover-scale:hover {
+      transform: scale(1.02);
+    }
+   nav {
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  justify-content: center; /* ortala */
+  padding: 15px 0;
+  z-index: 1000;
+}
+
+nav a {
+  margin: 0 15px;
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  position: relative;
+  transition: color 0.3s ease, transform 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+/* Alt çizgi animasyonu */
+nav a::after {
+  content: '';
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  left: 0;
+  bottom: -4px;
+  background: #007bff;
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+nav a:hover::after {
+  width: 100%;
+}
+
+/* Renk ve hafif büyüme animasyonu */
+nav a:hover {
+  color: #007bff;
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+  background-color: rgba(0, 123, 255, 0.1);
+}
+  </style>
+  
+</head>
+<nav>
+      <a href="ana sayfa.html">ANASAYFA</a>
+      <a href="favori.html">FAVORİLER</a>
+      <a href="profil.html">PROFİL</a>
+      <a href="bildirimler.html">BİLDİRİMLER</a>
+      <a href="ayarlar.html">AYARLAR</a>
+    </nav>
+
+<body class="min-h-screen bg-gradient-to-br from-blue-100 to-white flex items-center justify-center px-4">
+  <div class="flex flex-col md:flex-row w-full max-w-6xl bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden">
+    <!-- Profil Kısmı -->
+    <div class="w-full md:w-1/2 p-8 relative">
+      <!-- Profil Foto -->
+      <div id="photoContainer" class="relative mx-auto w-32 h-32 bg-blue-600 rounded-full flex items-center justify-center text-white text-5xl font-bold overflow-hidden">
+        <span id="profileInitial">?</span>
+        <img id="profileImage" src="" alt="" class="absolute inset-0 w-full h-full object-cover hidden" />
+        <button onclick="document.getElementById('imageInput').click()" class="absolute bottom-1 right-1 bg-blue-500 p-1.5 rounded-full hover:bg-blue-700">✎</button>
+        <input type="file" id="imageInput" class="hidden" accept="image/*"/>
+      </div>
+      <h1 id="username" class="mt-4 text-3xl font-bold text-center text-gray-900">—</h1>
+      <p id="email" class="text-center text-gray-600 mb-6">—</p>
+      <div class="text-center">
+        <h2 class="font-semibold text-black">Hakkında</h2>
+        <p id="aboutMe" class="text-black/80 mb-4">—</p>
+      </div>
+      <div class="text-center">
+        <button onclick="openModal('settingsModal')" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">⚙️ Ayarlar</button>
+      </div>
+    </div>
+
+    <!-- Kartlar Kısmı -->
+    <div class="w-full md:w-1/2 p-8 border-l border-gray-200">
+      <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+        <h2 class="text-xl font-bold text-gray-800">💳 Kayıtlı Kartlar</h2>
+        <div class="flex gap-2">
+          <button onclick="fetchCards()" class="text-sm bg-blue-500 text-white px-4 py-1.5 rounded hover:bg-blue-700">Gör</button>
+          <button onclick="openModal('addCardModal')" class="text-sm bg-green-500 text-white px-4 py-1.5 rounded hover:bg-green-700">+ Ekle</button>
+        </div>
+      </div>
+      <div id="cardList" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Modallar -->
+  <div id="cardDetailModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-2xl w-96 shadow-lg fade-container">
+      <h2 class="text-xl font-bold mb-4">💳 Kart Detayı</h2>
+      <p id="detailCardHolder"></p>
+      <p id="detailCardNumber"></p>
+      <p id="detailExpiry"></p>
+      <p id="detailCVV"></p>
+      <div class="flex gap-2 mt-4">
+        <button onclick="deleteCard()" class="flex-1 bg-red-500 text-white py-2 rounded hover:bg-red-700">🗑️ Sil</button>
+        <button onclick="openUpdateCardModal()" class="flex-1 bg-yellow-500 text-white py-2 rounded hover:bg-yellow-700">✏️ Güncelle</button>
+      </div>
+      <button onclick="closeModal('cardDetailModal')" class="block w-full text-red-500 mt-4 text-sm">Kapat</button>
+    </div>
+  </div>
+
+  <div id="addCardModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-2xl w-96 shadow-lg fade-container">
+      <h2 class="text-xl font-bold mb-4">➕ Kart Ekle</h2>
+      <input id="addCardHolder" type="text" placeholder="Kart Sahibi" class="w-full border px-3 py-2 rounded mb-2"/>
+      <input id="addCardNumber" type="text" placeholder="Kart No" class="w-full border px-3 py-2 rounded mb-2"/>
+      <input id="addExpiry" type="month" class="w-full border px-3 py-2 rounded mb-2"/>
+      <input id="addCVV" type="text" placeholder="CVV" class="w-full border px-3 py-2 rounded mb-4"/>
+      <button onclick="addCard()" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700">Kaydet</button>
+      <button onclick="closeModal('addCardModal')" class="block w-full text-red-500 mt-2 text-sm">İptal</button>
+    </div>
+  </div>
+
+  <div id="updateCardModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-2xl w-96 shadow-lg fade-container">
+      <h2 class="text-xl font-bold mb-4">✏️ Kart Güncelle</h2>
+      <input id="updateCardHolder" type="text" class="w-full border px-3 py-2 rounded mb-2"/>
+      <input id="updateCardNumber" type="text" class="w-full border px-3 py-2 rounded mb-2"/>
+      <input id="updateExpiry" type="month" class="w-full border px-3 py-2 rounded mb-2"/>
+      <input id="updateCVV" type="text" class="w-full border px-3 py-2 rounded mb-4"/>
+      <button onclick="updateCard()" class="w-full bg-yellow-600 text-white py-3 rounded-lg hover:bg-yellow-700">Güncelle</button>
+      <button onclick="closeModal('updateCardModal')" class="block w-full text-red-500 mt-2 text-sm">İptal</button>
+    </div>
+  </div>
+
+  <!-- Ayarlar Modal -->
+<div id="settingsModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded-2xl w-[95%] max-w-lg shadow-lg fade-container">
+    <h2 class="text-xl font-bold mb-4 text-center">⚙️ Hesap Ayarları</h2>
+
+    <!-- Şifre Değiştir -->
+    <div class="mb-6">
+      <h3 class="font-semibold text-gray-800 mb-2">🔒 Şifre Değiştir</h3>
+      <input id="currentPassword" type="password" placeholder="Mevcut Şifre" class="w-full border px-3 py-2 rounded mb-2" />
+      <input id="newPassword" type="password" placeholder="Yeni Şifre" class="w-full border px-3 py-2 rounded mb-2" />
+      <button onclick="changePassword()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Şifreyi Güncelle</button>
+    </div>
+
+    <!-- Telefon Değiştir -->
+    <div class="mb-4">
+      <h3 class="font-semibold text-gray-800 mb-2">📱 Telefon Numarası Güncelle</h3>
+      <input id="phoneNumber" type="tel" placeholder="+90 5xx xxx xx xx" class="w-full border px-3 py-2 rounded mb-2" />
+      <button onclick="updatePhone()" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">Telefonu Güncelle</button>
+    </div>
+
+    <button onclick="closeModal('settingsModal')" class="block w-full text-red-500 mt-2 text-sm">Kapat</button>
+  <!-- Settings ve Diğer Modallar senin kodunda zaten tam -->
+
+  <!-- Toastify CDN -->
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+    authDomain: "mobilapp-7a324.firebaseapp.com",
+    projectId: "mobilapp-7a324",
+    appId: "1:274277984516:web:YOUR_APP_ID_HERE" // Console > Project settings'ten tam App ID'yi ekle!
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  const usernameEl = document.getElementById('username');
+  const emailEl = document.getElementById('email');
+  const aboutEl = document.getElementById('aboutMe');
+  const initEl = document.getElementById('profileInitial');
+  const imgEl = document.getElementById('profileImage');
+  const fileInput = document.getElementById('imageInput');
+  const cardList = document.getElementById('cardList');
+  let selectedCardId = '';
+
+  function showToast(msg, color = "#1e40af") {
+    Toastify({
+      text: msg,
+      duration: 3000,
+      gravity: "top",
+      position: "right",
+      backgroundColor: color,
+      close: true
+    }).showToast();
+  }
+
+  function logNotification(message, type = 'info') {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const notification = {
+      message: message,
+      type: type,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    db.collection("users").doc(user.uid).collection("notifications").add(notification)
+      .catch(err => console.error("Bildirim kaydedilemedi:", err));
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (!user) return window.location.href = '/login.html';
+    emailEl.textContent = user.email;
+    db.collection('users').doc(user.uid).get().then(doc => {
+      const d = doc.data();
+      usernameEl.textContent = d.username || '—';
+      aboutEl.textContent = d.aboutMe || 'Hakkında bilgi yok';
+      if (d.profileImage) {
+        imgEl.src = d.profileImage;
+        imgEl.classList.remove('hidden');
+        initEl.classList.add('hidden');
+      } else {
+        initEl.textContent = (d.username || '?')[0].toUpperCase();
+      }
+    });
+  });
+
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    const user = auth.currentUser;
+    if (file && user) {
+      const ref = storage.ref().child(`profileImages/${user.uid}`);
+      ref.put(file).then(() => ref.getDownloadURL()).then(url => {
+        return db.collection('users').doc(user.uid).update({ profileImage: url });
+      }).then(() => {
+        imgEl.src = URL.createObjectURL(file);
+        imgEl.classList.remove('hidden');
+        initEl.classList.add('hidden');
+        showToast("Profil resmi güncellendi.");
+        logNotification("Profil resmi güncellendi.", "info");
+      });
+    }
+  });
+
+  function openModal(id) {
+    const m = document.getElementById(id);
+    m.classList.remove('hidden');
+    m.querySelector('.fade-container')?.classList.add('fade-in');
+  }
+
+  function closeModal(id) {
+    const m = document.getElementById(id);
+    const c = m.querySelector('.fade-container');
+    c?.classList.replace('fade-in', 'fade-out');
+    setTimeout(() => {
+      m.classList.add('hidden');
+      c?.classList.remove('fade-out');
+    }, 300);
+  }
+
+  function fetchCards() {
+    const user = auth.currentUser;
+    if (!user) return;
+    cardList.innerHTML = '<p class="text-gray-500">Yükleniyor...</p>';
+    db.collection('users').doc(user.uid).collection('cardDetails').get().then(snapshot => {
+      cardList.innerHTML = '';
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const maskedNumber = '**** **** **** ' + d.cardNumber.slice(-4);
+        const exp = new Date(d.expiryDate.seconds ? d.expiryDate.seconds * 1000 : d.expiryDate);
+        const expStr = (exp.getMonth() + 1).toString().padStart(2, '0') + '/' + exp.getFullYear().toString().slice(-2);
+        const div = document.createElement('div');
+        div.className = 'bg-gradient-to-tr from-blue-400 to-purple-500 text-white rounded-xl p-4 shadow-lg hover-scale cursor-pointer';
+        div.innerHTML = `<p class="font-semibold text-lg">${d.cardHolderName}</p><p>${maskedNumber}</p><p>SKT: ${expStr}</p>`;
+        div.onclick = () => { selectedCardId = doc.id; showCardDetail(d); };
+        cardList.appendChild(div);
+      });
+    });
+  }
+
+  function showCardDetail(d) {
+    document.getElementById('detailCardHolder').textContent = 'Kart Sahibi: ' + d.cardHolderName;
+    document.getElementById('detailCardNumber').textContent = 'Kart No: ' + d.cardNumber;
+    const exp = new Date(d.expiryDate.seconds ? d.expiryDate.seconds * 1000 : d.expiryDate);
+    const expStr = (exp.getMonth() + 1).toString().padStart(2, '0') + '/' + exp.getFullYear().toString().slice(-2);
+    document.getElementById('detailExpiry').textContent = 'SKT: ' + expStr;
+    document.getElementById('detailCVV').textContent = 'CVV: ' + d.cvv;
+    openModal('cardDetailModal');
+  }
+
+  function addCard() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const cardNumber = document.getElementById('addCardNumber').value.replace(/\D/g, '');
+    if (cardNumber.length !== 16) return showToast("Kart numarası 16 haneli olmalıdır.", "#dc2626");
+
+    const data = {
+      cardHolderName: document.getElementById('addCardHolder').value,
+      cardNumber,
+      expiryDate: new Date(document.getElementById('addExpiry').value + '-01'),
+      cvv: document.getElementById('addCVV').value
+    };
+
+    db.collection('users').doc(user.uid).collection('cardDetails').add(data)
+      .then(() => {
+        closeModal('addCardModal');
+        fetchCards();
+        showToast("Kart başarıyla eklendi.");
+        logNotification("Yeni bir kart eklendi.", "success");
+      })
+      .catch(err => {
+        console.error(err);
+        showToast("Kart eklenirken hata oluştu.", "#dc2626");
+        logNotification("Kart eklenirken hata oluştu.", "error");
+      });
+  }
+
+  function deleteCard() {
+    const user = auth.currentUser;
+    if (!user || !selectedCardId) return;
+    db.collection('users').doc(user.uid).collection('cardDetails').doc(selectedCardId).delete().then(() => {
+      closeModal('cardDetailModal');
+      fetchCards();
+      showToast("Kart silindi.");
+      logNotification("Bir kart silindi.", "error");
+    }).catch(err => {
+      console.error(err);
+      showToast("Kart silinirken hata oluştu.", "#dc2626");
+      logNotification("Kart silinirken hata oluştu.", "error");
+    });
+    
+  }
+
+  function openUpdateCardModal() {
+    const user = auth.currentUser;
+    if (!user || !selectedCardId) return;
+    db.collection('users').doc(user.uid).collection('cardDetails').doc(selectedCardId).get().then(doc => {
+      const d = doc.data();
+      document.getElementById('updateCardHolder').value = d.cardHolderName;
+      document.getElementById('updateCardNumber').value = d.cardNumber;
+      const exp = new Date(d.expiryDate.seconds ? d.expiryDate.seconds * 1000 : d.expiryDate);
+      document.getElementById('updateExpiry').value = exp.toISOString().slice(0, 7);
+      document.getElementById('updateCVV').value = d.cvv;
+      closeModal('cardDetailModal');
+      openModal('updateCardModal');
+    });
+  }
+
+  function updateCard() {
+    const user = auth.currentUser;
+    if (!user || !selectedCardId) return;
+
+    const cardNumber = document.getElementById('updateCardNumber').value.replace(/\D/g, '');
+    if (cardNumber.length !== 16) return showToast("Kart numarası 16 haneli olmalıdır.", "#dc2626");
+
+    const data = {
+      cardHolderName: document.getElementById('updateCardHolder').value,
+      cardNumber,
+      expiryDate: new Date(document.getElementById('updateExpiry').value + '-01'),
+      cvv: document.getElementById('updateCVV').value
+    };
+
+    db.collection('users').doc(user.uid).collection('cardDetails').doc(selectedCardId).update(data)
+      .then(() => {
+        closeModal('updateCardModal');
+        fetchCards();
+        showToast("Kart başarıyla güncellendi.");
+        logNotification("Bir kart güncellendi.", "info");
+      }).catch(err => {
+        console.error(err);
+        showToast("Kart güncellenirken hata oluştu.", "#dc2626");
+        logNotification("Kart güncellenirken hata oluştu.", "error");
+      });
+  }
+
+  function changePassword() {
+    const user = firebase.auth().currentUser;
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+
+    if (!currentPassword || !newPassword) return showToast("Tüm alanları doldurun.", "#dc2626");
+
+    const email = user.email;
+    const cred = firebase.auth.EmailAuthProvider.credential(email, currentPassword);
+
+    user.reauthenticateWithCredential(cred).then(() => {
+      return user.updatePassword(newPassword);
+    }).then(() => {
+      showToast("Şifre başarıyla güncellendi.");
+      logNotification("Şifre başarıyla güncellendi.", "info");
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+    }).catch(err => {
+      console.error(err);
+      showToast("Hata: " + err.message, "#dc2626");
+      logNotification("Şifre değiştirme hatası: " + err.message, "error");
+    });
+  }
+
+  function updatePhone() {
+    const user = firebase.auth().currentUser;
+    const phone = document.getElementById('phoneNumber').value;
+    if (!phone) return showToast("Lütfen telefon numarası girin.", "#dc2626");
+    db.collection("users").doc(user.uid).update({ phoneNumber: phone }).then(() => {
+      showToast("Telefon numarası güncellendi.");
+      logNotification("Telefon numarası güncellendi.", "info");
+      document.getElementById('phoneNumber').value = '';
+    }).catch(err => {
+      console.error(err);
+      showToast("Hata: " + err.message, "#dc2626");
+      logNotification("Telefon numarası güncelleme hatası: " + err.message, "error");
+    });
+  }
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Kayıt Ol</title>
+  <style>
+    body { font-family: Arial; background: #f0f0f0; padding: 40px; text-align: center; }
+    .box { background: white; padding: 30px; border-radius: 10px; max-width: 400px; margin: auto; }
+    input, button {
+      width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px;
+    }
+    button { background: #007bff; color: white; border: none; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Kayıt Ol</h2>
+    <input type="email" id="email" placeholder="E-posta">
+    <input type="password" id="password" placeholder="Şifre">
+    <button onclick="register()">Kaydol</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+  <script>
+    const firebaseConfig = {
+     apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+    authDomain: "mobilapp-7a324.firebaseapp.com",
+    projectId: "mobilapp-7a324",
+    appId: "1:274277984516:web:YOUR_APP_ID_HERE"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function register() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const error = document.getElementById('error');
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          window.location.href = "index.html";
+        })
+        .catch(e => error.textContent = e.message);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Favori Kampanyalar</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+      margin: 0;
+    }
+    .bottom-ad-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    background: #ffffff;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    z-index: 999;
+  }
+
+  .bottom-ad-slide {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    text-align: center;
+  }
+
+  .bottom-ad-slide.active {
+    opacity: 1;
+  }
+
+  .bottom-ad-slide img {
+    height: 80px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .bottom-ad-text {
+    font-size: 18px;
+    color: #222;
+    font-weight: 500;
+    max-width: 400px;
+  }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: opacity 0.5s ease, max-height 0.5s ease, margin 0.5s ease, padding 0.5s ease;
+      overflow: hidden;
+      max-height: 300px;
+      margin: 0;
+    }
+    .card.hide {
+      opacity: 0;
+      max-height: 0;
+      margin: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .card img.logo {
+      width: 120px;
+      height: 60px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+    .title {
+      font-size: 22px;
+      font-weight: bold;
+      margin: 10px 0 6px 0;
+      text-align: center;
+    }
+    .desc {
+      font-size: 15px;
+      color: #555;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .maxipuan {
+      color: #007bff;
+      font-weight: bold;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    p {
+      text-align: center;
+      font-size: 18px;
+      color: #444;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      font-size: 18px;
+      line-height: 22px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transition: background-color 0.3s ease;
+    }
+    .close-btn:hover {
+      background: #e60000;
+    }
+
+    /* Reklam bölümü */
+    .ad-section {
+      margin-top: 60px;
+      padding: 30px;
+      background-color: #fff;
+      border-radius: 15px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    .ad-section h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .ad-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .ad-item {
+      width: 160px;
+      text-align: center;
+    }
+
+    .ad-item img {
+      width: 100px;
+      height: 50px;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+
+    .ad-item .sponsor-text {
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Favori Kampanyalarınız</h1>
+  <div class="grid" id="favorites"></div>
+
+  <!-- Reklam Alanı -->
+<div class="bottom-ad-container">
+  <div class="bottom-ad-slide active">
+    <img src="https://www.happi.com/wp-content/uploads/2024/03/laeoraal-1.jpeg" alt="L'Oréal">
+    <div class="bottom-ad-text">Güzelliğin geleceği L'Oréal ile</div>
+  </div>
+  <div class="bottom-ad-slide">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple">
+    <div class="bottom-ad-text">Yeni iPhone şimdi Apple'da</div>
+  </div>
+  <div class="bottom-ad-slide">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQZM5uiWw73qLmuJ2axU8l87YsmYX4CGrMewA&s" alt="McDonald's">
+    <div class="bottom-ad-text">BigMac menüye özel fırsatlar!</div>
+  </div>
+  <div class="bottom-ad-slide">
+    <img src="https://www.markafikirleri.com/wp-content/uploads/2020/08/amazonlogo1.jpg" alt="Amazon">
+    <div class="bottom-ad-text">Prime fırsatlarını kaçırma</div>
+  </div>
+</div>
+
+  <script>
+
+      const slides = document.querySelectorAll('.bottom-ad-slide');
+  let current = 0;
+
+  setInterval(() => {
+    slides[current].classList.remove('active');
+    current = (current + 1) % slides.length;
+    slides[current].classList.add('active');
+  }, 5000); // 5 saniyede bir değişim
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+      authDomain: "mobilapp-7a324.firebaseapp.com",
+      projectId: "mobilapp-7a324",
+      appId: "1:274277984516:web:YOUR_APP_ID_HERE"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const campaignsData = {
+      zara: {
+        title: "Zara",
+        desc: "Zara'da 750 TL MaxiPuan Fırsatı!",
+        maxipuan: "750 TL MaxiPuan",
+        img: "https://brandlogos.net/wp-content/uploads/2022/04/zara-logo-brandlogos.net_.png"
+      },
+      mavi: {
+        title: "Mavi",
+        desc: "Mavi'de 1.000 TL MaxiPuan Fırsatı!",
+        maxipuan: "1.000 TL MaxiPuan",
+        img: "https://play-lh.googleusercontent.com/UzZTMEVbe0ujhHarV2tIPolN_mMv7ZXi200MHj3rirYoZByrLLlhy4iSgLgHUvQLGahc"
+      },
+      boyner: {
+        title: "Boyner",
+        desc: "Boyner'de 500 TL MaxiPuan Fırsatı!",
+        maxipuan: "500 TL MaxiPuan",
+        img: "https://elmaaltshift.com/wp-content/uploads/2015/12/boyner-elmaaltshift.jpg"
+      },
+      nike: {
+        title: "Nike",
+        desc: "Nike'ta %20 İndirim ve MaxiPuan!",
+        maxipuan: "%20 İndirim",
+        img: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg"
+      },
+      hm: {
+        title: "H&M",
+        desc: "H&M'de 400 TL MaxiPuan Kampanyası!",
+        maxipuan: "400 TL MaxiPuan",
+        img: "https://www.mallofantalya.com.tr/content/upload/images/large/2022/08/hm.png"
+      },
+      adidas: {
+        title: "Adidas",
+        desc: "Adidas'ta Özel Fırsatlar ve MaxiPuan!",
+        maxipuan: "%15 İndirim",
+        img: "https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg"
+      }
+    };
+
+    const favoritesContainer = document.getElementById("favorites");
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        favoritesContainer.innerHTML = "<p>Lütfen giriş yapınız.</p>";
+        return;
+      }
+
+      try {
+        const snapshot = await db
+          .collection("users")
+          .doc(user.uid)
+          .collection("favorites")
+          .get();
+
+        if (snapshot.empty) {
+          favoritesContainer.innerHTML = "<p>Henüz favori eklemediniz.</p>";
+          return;
+        }
+
+        favoritesContainer.innerHTML = "";
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const brandKey = data.brandId;
+
+          if (!brandKey || !campaignsData[brandKey]) return;
+
+          const campaign = campaignsData[brandKey];
+
+          const card = document.createElement("div");
+          card.className = "card";
+
+          const closeBtn = document.createElement("button");
+          closeBtn.className = "close-btn";
+          closeBtn.textContent = "×";
+          closeBtn.title = "Favoriden çıkar";
+
+          closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            card.classList.add("hide");
+            card.addEventListener("transitionend", async () => {
+              try {
+                await db
+                  .collection("users")
+                  .doc(user.uid)
+                  .collection("favorites")
+                  .doc(doc.id)
+                  .delete();
+              } catch (error) {
+                alert("Favoriden çıkarılamadı: " + error.message);
+                card.classList.remove("hide");
+              }
+            }, { once: true });
+          };
+
+          const img = document.createElement("img");
+          img.src = campaign.img;
+          img.alt = campaign.title;
+          img.className = "logo";
+
+          const title = document.createElement("div");
+          title.className = "title";
+          title.textContent = campaign.title;
+
+          const desc = document.createElement("div");
+          desc.className = "desc";
+          desc.textContent = campaign.desc;
+
+          const maxipuan = document.createElement("div");
+          maxipuan.className = "maxipuan";
+          maxipuan.textContent = campaign.maxipuan;
+
+          card.appendChild(closeBtn);
+          card.appendChild(img);
+          card.appendChild(title);
+          card.appendChild(desc);
+          card.appendChild(maxipuan);
+
+          favoritesContainer.appendChild(card);
+        });
+      } catch (err) {
+        console.error("Favori verileri yüklenemedi:", err);
+        favoritesContainer.innerHTML = "<p>Favoriler yüklenemedi.</p>";
+      }
+    });
+  </script>
+</body>
+</html>

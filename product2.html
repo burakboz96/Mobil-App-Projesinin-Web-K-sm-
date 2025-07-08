@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kampanyalar</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+      margin: 0;
+    }
+    h1 { text-align: center; margin-bottom: 30px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: white; padding: 20px; border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      position: relative; transition: 0.3s;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .card img.logo {
+      width: 120px; height: 60px; object-fit: contain;
+      margin-bottom: 10px;
+    }
+    .title { font-size: 22px; font-weight: bold; margin: 10px 0 6px 0; text-align:center;}
+    .desc { font-size: 15px; color: #555; text-align:center; margin-bottom: 10px; }
+    .maxipuan {
+      color: #007bff; font-weight: bold; margin-bottom: 15px;
+      font-size: 16px;
+    }
+    .heart {
+      position: absolute; top: 15px; right: 15px; cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .heart:hover { transform: scale(1.2); }
+    .heart.active svg { fill: red; }
+    .button {
+      background: #28a745; color: white; padding: 10px 18px;
+      border: none; border-radius: 8px; font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    .button:disabled {
+      background: #ccc; cursor: not-allowed;
+    }
+    .popup {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #28a745; color: white; padding: 16px 24px;
+      border-radius: 10px; opacity: 0; transition: 0.5s; pointer-events: none;
+      z-index: 10000;
+      font-size: 16px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .popup.show {
+      opacity: 1; pointer-events: auto;
+    }
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      position: relative;
+      text-align: center;
+    }
+    .modal h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    .modal p {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 25px;
+    }
+    .modal button {
+      margin: 0 10px;
+      padding: 10px 20px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    .modal .btn-confirm {
+      background-color: #28a745;
+      color: white;
+    }
+    .modal .btn-confirm:hover {
+      background-color: #218838;
+    }
+    .modal .btn-cancel {
+      background-color: #dc3545;
+      color: white;
+    }
+    .modal .btn-cancel:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <h1>Marka Kampanyaları</h1>
+  <div class="grid" id="campaigns"></div>
+
+  <div class="popup" id="popup">🎉 Katılımınız alındı! E-posta gönderildi.</div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <h2 id="modalTitle"></h2>
+      <p id="modalDesc"></p>
+      <button class="btn-confirm" id="confirmBtn">Katıl</button>
+      <button class="btn-cancel" id="cancelBtn">İptal</button>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+      authDomain: "mobilapp-7a324.firebaseapp.com",
+      projectId: "mobilapp-7a324",
+      appId: "1:274277984516:web:YOUR_APP_ID_HERE"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const functions = firebase.functions();
+
+    const campaigns = [
+      {
+        id: "zara",
+        title: "Zara",
+        desc: "Zara'da 750 TL MaxiPuan Fırsatı!",
+        maxipuan: "750 TL MaxiPuan",
+        img: "https://brandlogos.net/wp-content/uploads/2022/04/zara-logo-brandlogos.net_.png"
+      },
+      {
+        id: "mavi",
+        title: "Mavi",
+        desc: "Mavi'de 1.000 TL MaxiPuan Fırsatı!",
+        maxipuan: "1.000 TL MaxiPuan",
+        img: "https://play-lh.googleusercontent.com/UzZTMEVbe0ujhHarV2tIPolN_mMv7ZXi200MHj3rirYoZByrLLlhy4iSgLgHUvQLGahc"
+      },
+      {
+        id: "boyner",
+        title: "Boyner",
+        desc: "Boyner'de 500 TL MaxiPuan Fırsatı!",
+        maxipuan: "500 TL MaxiPuan",
+        img: "https://elmaaltshift.com/wp-content/uploads/2015/12/boyner-elmaaltshift.jpg"
+      },
+      {
+        id: "nike",
+        title: "Nike",
+        desc: "Nike'ta %20 İndirim ve MaxiPuan!",
+        maxipuan: "%20 İndirim",
+        img: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg"
+      },
+      {
+        id: "hm",
+        title: "H&M",
+        desc: "H&M'de 400 TL MaxiPuan Kampanyası!",
+        maxipuan: "400 TL MaxiPuan",
+        img: "https://www.mallofantalya.com.tr/content/upload/images/large/2022/08/hm.png"
+      },
+      {
+        id: "adidas",
+        title: "Adidas",
+        desc: "Adidas'ta Özel Fırsatlar ve MaxiPuan!",
+        maxipuan: "%15 İndirim",
+        img: "https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg"
+      }
+    ];
+
+    const container = document.getElementById("campaigns");
+    const popup = document.getElementById("popup");
+    const modalOverlay = document.getElementById("modalOverlay");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalDesc = document.getElementById("modalDesc");
+    const confirmBtn = document.getElementById("confirmBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    let currentUserEmail = "";
+    let selectedCampaignId = null;
+
+    // Kullanıcı giriş kontrolü ve kampanyaları oluşturma
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        alert("Devam etmek için giriş yapmanız gerekmektedir.");
+        return;
+      }
+      currentUserEmail = user.email;
+      container.innerHTML = ""; // Temizle
+      for (const item of campaigns) {
+        const docRef = db.collection("participants").doc(`${item.id}_${user.uid}`);
+        const doc = await docRef.get();
+        const alreadyJoined = doc.exists;
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const heart = document.createElement("div");
+heart.className = "heart";
+
+// SVG kalp ikonu
+heart.innerHTML = `
+  <svg height="20" viewBox="0 0 24 24" width="20">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 
+      2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09 
+      C13.09 3.81 14.76 3 16.5 3 
+      19.58 3 22 5.42 22 8.5 
+      c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+  </svg>`;
+
+heart.onclick = async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Favoriye eklemek için giriş yapmalısınız.");
+    return;
+  }
+  console.log("Favori ekleniyor, marka id:", item.id, "user uid:", user.uid);
+
+  const favRef = db.collection("users").doc(user.uid).collection("favorites").doc(item.id);
+
+  try {
+    const doc = await favRef.get();
+    if (!doc.exists) {
+      await favRef.set({
+        brandId: item.id,
+        uid: user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log("Favori başarıyla eklendi.");
+      heart.classList.add("active");
+      alert("Favoriye eklendi!");
+    } else {
+      alert("Bu kampanya zaten favorilerinizde.");
+      console.log("Zaten favorilere eklenmiş.");
+    }
+  } catch (error) {
+    console.error("Favoriye eklenirken hata:", error.message);
+    alert("Favoriye eklenirken hata oluştu: " + error.message);
+  }
+};
+
+        // Resim
+        const img = document.createElement("img");
+        img.src = item.img;
+        img.alt = item.title;
+        img.className = "logo";
+
+        // Başlık
+        const title = document.createElement("div");
+        title.className = "title";
+        title.textContent = item.title;
+
+        // Açıklama
+        const desc = document.createElement("div");
+        desc.className = "desc";
+        desc.textContent = item.desc;
+
+        // MaxiPuan
+        const maxipuan = document.createElement("div");
+        maxipuan.className = "maxipuan";
+        maxipuan.textContent = item.maxipuan;
+
+        // Katıl butonu
+        const btn = document.createElement("button");
+        btn.className = "button";
+        btn.textContent = alreadyJoined ? "Katıldınız" : "Katıl";
+        btn.disabled = alreadyJoined;
+
+        btn.onclick = () => {
+          if (!alreadyJoined) openModal(item);
+        };
+
+        card.appendChild(heart);
+        card.appendChild(img);
+        card.appendChild(title);
+        card.appendChild(desc);
+        card.appendChild(maxipuan);
+        card.appendChild(btn);
+
+        container.appendChild(card);
+      }
+    });
+
+    // Modal açma fonksiyonu
+    function openModal(campaign) {
+      selectedCampaignId = campaign.id;
+      modalTitle.textContent = campaign.title + " Kampanyasına Katıl";
+      modalDesc.textContent = campaign.desc + " " + campaign.maxipuan;
+      confirmBtn.disabled = false;
+      modalOverlay.classList.add("active");
+    }
+
+    // Modal kapatma
+    function closeModal() {
+      modalOverlay.classList.remove("active");
+      selectedCampaignId = null;
+    }
+
+    cancelBtn.addEventListener("click", () => {
+      closeModal();
+    });
+
+    // Katılım onayı
+    confirmBtn.addEventListener("click", async () => {
+      if (!selectedCampaignId) return;
+      const user = auth.currentUser;
+      if (!user) {
+        alert("Lütfen giriş yapınız.");
+        closeModal();
+        return;
+      }
+
+      confirmBtn.disabled = true;
+
+      try {
+        const docRef = db.collection("participants").doc(`${selectedCampaignId}_${user.uid}`);
+        const doc = await docRef.get();
+
+        if (doc.exists) {
+          alert("Bu kampanyaya zaten katıldınız.");
+          closeModal();
+          return;
+        }
+
+        // Katılım kaydet
+        await docRef.set({
+          email: user.email,
+          uid: user.uid,
+          brand: selectedCampaignId,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Email gönderme fonksiyonunu çağır
+        await functions.httpsCallable("sendConfirmationEmail")({
+          email: user.email,
+          brand: selectedCampaignId
+        });
+
+        showPopup();
+
+        // Modal kapat, butonu disable et, buton text update et
+        closeModal();
+
+        // Butonu disable ve yazı güncelle
+        const buttons = document.querySelectorAll(".button");
+        buttons.forEach(button => {
+          if (button.textContent === "Katıl" && button.onclick) {
+            // Eğer bu buton seçili kampanyaya ait ise disable et ve yazısını değiştir
+            if (button.parentNode.querySelector(".title").textContent.toLowerCase() === campaigns.find(c => c.id === selectedCampaignId).title.toLowerCase()) {
+              button.disabled = true;
+              button.textContent = "Katıldınız";
+            }
+          }
+        });
+
+      } catch (error) {
+        alert("Bir hata oluştu: " + error.message);
+        confirmBtn.disabled = false;
+      }
+    });
+
+    // Popup gösterme fonksiyonu
+    function showPopup() {
+      popup.classList.add("show");
+      setTimeout(() => {
+        popup.classList.remove("show");
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

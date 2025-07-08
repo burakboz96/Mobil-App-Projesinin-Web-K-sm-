@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ödeme Ekranı</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    .card {
+      background: linear-gradient(135deg, #4facfe 0%, #8e44ad 100%);
+      color: #fff;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-number {
+      font-size: 1.2em;
+      letter-spacing: 2px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #333;
+    }
+    input[type="text"], input[type="date"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .save-card {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .save-card input {
+      margin-right: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+
+  <!-- Firebase (Compat Sürümler) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Ödeme Ekranı</h1>
+    <div class="card">
+      <p id="cardType">Unknown</p>
+      <p class="card-number" id="cardNumberPreview">XXXX XXXX XXXX XXXX</p>
+      <p id="expiryDatePreview">Son Kullanma Tarihi:</p>
+      <p id="cardHolderPreview">Kart Sahibi</p>
+      <p id="cvvPreview">CVV:</p>
+    </div>
+
+    <div class="form-group">
+      <label for="cardNumber">Kart Numarası</label>
+      <input type="text" id="cardNumber" maxlength="16" />
+    </div>
+
+    <div class="form-group">
+      <label for="expiryDate">Son Kullanma Tarihi</label>
+      <input type="date" id="expiryDate" />
+    </div>
+
+    <div class="form-group">
+      <label for="cvv">CVV</label>
+      <input type="password" id="cvv" maxlength="3" />
+    </div>
+
+    <div class="form-group">
+      <label for="cardHolder">Kart Sahibi İsmi</label>
+      <input type="text" id="cardHolder" />
+    </div>
+
+    <div class="save-card">
+      <input type="checkbox" id="saveCard" />
+      <label for="saveCard">Kartı Kaydet</label>
+    </div>
+
+    <button onclick="handlePayment()">Ödemeyi Tamamla</button>
+  </div>
+
+  <script>
+    // Firebase yapılandırmanızı BURAYA girin
+    const firebaseConfig = {
+     apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+    authDomain: "mobilapp-7a324.firebaseapp.com",
+    projectId: "mobilapp-7a324",
+    appId: "1:274277984516:web:YOUR_APP_ID_HERE" // Console > Project settings'ten tam App ID'yi ekle!
+    };
+
+    // Firebase başlat
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Anonim oturum aç
+    auth.signInAnonymously().catch(error => {
+      console.error("Anonim giriş hatası:", error);
+    });
+
+    // Tüm DOM yüklendikten sonra başlat
+    window.addEventListener("DOMContentLoaded", () => {
+      const cardNumberInput = document.getElementById("cardNumber");
+      const expiryDateInput = document.getElementById("expiryDate");
+      const cvvInput = document.getElementById("cvv");
+      const cardHolderInput = document.getElementById("cardHolder");
+      const saveCardCheckbox = document.getElementById("saveCard");
+
+      const cardNumberPreview = document.getElementById("cardNumberPreview");
+      const cardTypePreview = document.getElementById("cardType");
+      const expiryDatePreview = document.getElementById("expiryDatePreview");
+      const cardHolderPreview = document.getElementById("cardHolderPreview");
+      const cvvPreview = document.getElementById("cvvPreview");
+
+      cardNumberInput.addEventListener("input", () => {
+        const num = cardNumberInput.value;
+        cardNumberPreview.textContent = num.padEnd(16, "X").replace(/(.{4})/g, "$1 ").trim();
+        cardTypePreview.textContent = detectCardType(num);
+      });
+
+      expiryDateInput.addEventListener("input", () => {
+        expiryDatePreview.textContent = "Son Kullanma Tarihi: " + expiryDateInput.value;
+      });
+
+      cardHolderInput.addEventListener("input", () => {
+        cardHolderPreview.textContent = cardHolderInput.value || "Kart Sahibi";
+      });
+
+      cvvInput.addEventListener("input", () => {
+        cvvPreview.textContent = "CVV: " + cvvInput.value;
+      });
+
+      window.handlePayment = function () {
+        const cardData = {
+          cardNumber: cardNumberInput.value,
+          expiryDate: expiryDateInput.value,
+          cvv: cvvInput.value,
+          cardHolderName: cardHolderInput.value
+        };
+
+        if (saveCardCheckbox.checked) {
+          const user = auth.currentUser;
+          if (user) {
+            db.collection("users").doc(user.uid).collection("cardDetails").add(cardData)
+              .then(() => {
+                alert("Kart başarıyla kaydedildi ve ödeme tamamlandı!");
+              })
+              .catch(error => {
+                alert("Hata: " + error.message);
+              });
+          } else {
+            alert("Kullanıcı oturumu açık değil.");
+          }
+        } else {
+          alert("Ödeme tamamlandı!");
+        }
+      };
+
+      function detectCardType(number) {
+        if (number.startsWith("4")) return "Visa";
+        if (number.startsWith("5")) return "MasterCard";
+        if (number.startsWith("6")) return "Troy";
+        if (number.startsWith("7")) return "American Express";
+        return "Unknown";
+      }
+    });
+  </script>
+
+</body>
+</html>

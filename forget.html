@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Şifre Sıfırlama</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-width: 400px;
+      width: 100%;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input[type="email"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .message {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 14px;
+    }
+  </style>
+
+  <!-- Firebase (Compat sürüm) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Şifre Sıfırlama</h2>
+    <input type="email" id="email" placeholder="E-posta adresinizi girin" />
+    <button onclick="sendPasswordReset()">Sıfırlama Bağlantısı Gönder</button>
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    // Firebase ayarları (kendi bilgilerinizle değiştirin)
+    const firebaseConfig = {
+    apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+    authDomain: "mobilapp-7a324.firebaseapp.com",
+    projectId: "mobilapp-7a324",
+    appId: "1:274277984516:web:YOUR_APP_ID_HERE" 
+    };
+
+    // Firebase başlat
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function sendPasswordReset() {
+      const email = document.getElementById("email").value;
+      const messageEl = document.getElementById("message");
+
+      if (!email) {
+        messageEl.style.color = "red";
+        messageEl.textContent = "Lütfen geçerli bir e-posta adresi girin.";
+        return;
+      }
+
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          messageEl.style.color = "green";
+          messageEl.textContent = "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.";
+        })
+        .catch((error) => {
+          messageEl.style.color = "red";
+          if (error.code === "auth/user-not-found") {
+            messageEl.textContent = "Bu e-posta ile kayıtlı kullanıcı bulunamadı.";
+          } else {
+            messageEl.textContent = "Bir hata oluştu: " + error.message;
+          }
+        });
+    }
+  </script>
+
+</body>
+</html>

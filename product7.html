@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NOVAaI Chatbot</title>
+  <style>
+    /* Reset */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom, #000000, #0052cc);
+      color: white;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    #app {
+      background: #202123;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgb(0 82 204 / 0.5);
+      width: 100%;
+      max-width: 600px;
+      height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      background: #0052cc;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.2rem;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+    }
+
+    header button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.4rem;
+      margin-right: 1rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    header h1 {
+      flex-grow: 1;
+      text-align: center;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    #chat {
+      flex: 1;
+      padding: 1rem 1.5rem;
+      overflow-y: auto;
+      background: #343541;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: #0052cc transparent;
+    }
+
+    /* Scrollbar Chrome */
+    #chat::-webkit-scrollbar {
+      width: 8px;
+    }
+    #chat::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #chat::-webkit-scrollbar-thumb {
+      background-color: #0052cc;
+      border-radius: 4px;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      max-width: 80%;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .message.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .message.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .message.user div {
+      background: #0052cc;
+      color: white;
+      border-radius: 18px 18px 0 18px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      box-shadow: 0 2px 5px rgb(0 82 204 / 0.4);
+    }
+
+    .message.bot div {
+      background: #444654;
+      color: #e5e5e5;
+      border-radius: 18px 18px 18px 0;
+      padding: 12px 18px;
+      font-size: 1rem;
+      box-shadow: 0 2px 5px rgb(0 0 0 / 0.4);
+      white-space: pre-wrap;
+    }
+
+    .message img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      user-select: none;
+    }
+
+    footer {
+      padding: 1rem 1.5rem;
+      background: #121214;
+      display: flex;
+      gap: 8px;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    footer input {
+      flex: 1;
+      border-radius: 9999px;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      background: #303136;
+      color: white;
+      outline-offset: -2px;
+      transition: outline 0.2s ease;
+    }
+    footer input:focus {
+      outline: 2px solid #0052cc;
+    }
+
+    footer button {
+      background: #0052cc;
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      color: white;
+      font-size: 1.3rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background 0.3s ease;
+      user-select: none;
+    }
+    footer button:hover {
+      background: #003a99;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" role="main" aria-label="Chatbot Arayüzü">
+    <header>
+      <button onclick="goBack()" aria-label="Geri">←</button>
+      <h1>NOVAaI Chatbot</h1>
+      <div style="width:32px;"></div>
+    </header>
+
+    <div id="chat" aria-live="polite" aria-relevant="additions"></div>
+
+    <footer>
+      <input id="input" placeholder="Mesajınızı yazın..." aria-label="Mesaj girişi" autocomplete="off" />
+      <button id="send" aria-label="Gönder">➤</button>
+    </footer>
+  </div>
+
+  <script>
+    const chatEl = document.getElementById('chat');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+
+    function goBack() {
+      window.history.back();
+    }
+
+    // Buraya kendi OpenAI API anahtarını koy
+    const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY_HERE';
+
+    async function callModel(prompt) {
+      if (!OPENAI_API_KEY || OPENAI_API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
+        return "API anahtarınız yok veya ayarlanmamış.";
+      }
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 500,
+          temperature: 0.7,
+          n: 1,
+          stop: null,
+        })
+      });
+
+      if (!response.ok) {
+        return "Sunucudan yanıt alınamadı.";
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content?.trim() ?? "Yanıt alınamadı.";
+    }
+
+    function addMessage(text, isUser) {
+      const msg = document.createElement('div');
+      msg.className = 'message ' + (isUser ? 'user' : 'bot');
+      const avatar = document.createElement('img');
+      avatar.src = isUser
+        ? 'https://cdn-icons-png.flaticon.com/512/194/194938.png'
+        : 'https://cdn-icons-png.flaticon.com/512/327/327779.png';
+      avatar.alt = isUser ? "Kullanıcı" : "Bot";
+      const bubble = document.createElement('div');
+      bubble.textContent = text;
+      msg.append(isUser ? [bubble, avatar] : [avatar, bubble]);
+      chatEl.appendChild(msg);
+      setTimeout(() => msg.classList.add('visible'), 20);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    async function onSend() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      inputEl.value = '';
+      addMessage(text, true);
+      addMessage('...', false);
+      try {
+        const botReply = await callModel(text);
+        // "..." mesajını kaldır
+        if (chatEl.lastChild && chatEl.lastChild.textContent === '...') {
+          chatEl.removeChild(chatEl.lastChild);
+        }
+        addMessage(botReply, false);
+      } catch (error) {
+        if (chatEl.lastChild && chatEl.lastChild.textContent === '...') {
+          chatEl.removeChild(chatEl.lastChild);
+        }
+        addMessage('Üzgünüm, bir hata oluştu.', false);
+        console.error(error);
+      }
+    }
+
+    sendBtn.onclick = onSend;
+    inputEl.addEventListener('keypress', e => {
+      if (e.key === 'Enter') onSend();
+    });
+
+    // Hoşgeldin mesajı
+    addMessage('Hoşgeldiniz, ben NOVAal. Ne sormak istersiniz?', false);
+  </script>
+</body>
+</html>

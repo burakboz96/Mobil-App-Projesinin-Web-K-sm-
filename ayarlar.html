@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ayarlar Paneli</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #eee;
+      overflow-x: hidden;
+    }
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 30px 16px;
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: #00aaff;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+    .card:hover {
+      transform: scale(1.02);
+    }
+    .card-title {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #00ccff;
+    }
+    .card-desc {
+      color: #bbb;
+      font-size: 0.95rem;
+    }
+    #modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    #modal .content {
+      background: #222;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 500px;
+      color: white;
+      position: relative;
+    }
+    #modal .close {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      cursor: pointer;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Kullanıcı Ayarları</h1>
+
+    <div class="card" onclick="openModal('Hesap Bilgileri', userInfoHtml)">
+      <div class="card-title">👤 Hesap Bilgileri</div>
+      <div class="card-desc">Kullanıcı adı ve e-posta bilgilerinizi görün.</div>
+    </div>
+
+    <div class="card" onclick="openModal('Genel Ayarlar', generalSettingsHtml)">
+      <div class="card-title">⚙️ Genel Ayarlar</div>
+      <div class="card-desc">Tema ve bildirim ayarlarını değiştirin.</div>
+    </div>
+
+    <div class="card" onclick="openModal('Ekran Süresi', screenTimeHtml)">
+      <div class="card-title">⏱️ Ekran Süresi</div>
+      <div class="card-desc">Uygulamayı kullanma sürenizi takip edin.</div>
+    </div>
+
+    <div class="card" onclick="openModal('Gizlilik ve KVKK', kvkkHtml)">
+      <div class="card-title">🛡️ Gizlilik & KVKK</div>
+      <div class="card-desc">Veri güvenliği ve KVKK onay metnini inceleyin.</div>
+    </div>
+
+    <div class="card" onclick="logout()">
+      <div class="card-title">🚪 Çıkış Yap</div>
+      <div class="card-desc">Hesabınızdan çıkış yapın.</div>
+    </div>
+  </div>
+
+  <div id="modal">
+    <div class="content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2 id="modal-title"></h2>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNtDVy6ippmcgDlc1UD13F7Epbeti0BUg",
+      authDomain: "mobilapp-7a324.firebaseapp.com",
+      projectId: "mobilapp-7a324"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUserData = {};
+    let userInfoHtml = '', generalSettingsHtml = '', screenTimeHtml = '', kvkkHtml = '';
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        db.collection("users").doc(user.uid).get().then(doc => {
+          const data = doc.data();
+          currentUserData = data;
+
+          userInfoHtml = `<p><strong>Kullanıcı Adı:</strong> ${data.username || 'Tanımsız'}</p>
+                          <p><strong>E-posta:</strong> ${data.email || user.email}</p>`;
+
+          generalSettingsHtml = `<p><strong>Bildirimler:</strong> ${data.notifications ? 'Açık' : 'Kapalı'}</p>
+                                  <p><strong>Tema:</strong> ${data.theme || 'Varsayılan'}</p>`;
+
+          screenTimeHtml = `<p><strong>Toplam Süre:</strong> ${data.time || 0} dakika</p>`;
+
+          kvkkHtml = `<p>KVKK Onayı: <strong>${data.kvkk ? 'Onaylı' : 'Onaylı Değil'}</strong></p>
+                       <p><small>Kışisel verileriniz gizlilik sözleşmesi çerçevesinde saklanır.</small></p>`;
+        });
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function openModal(title, body) {
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerHTML = body;
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    function logout() {
+      auth.signOut().then(() => {
+        alert("Çıkış yapıldı.");
+        window.location.href = "login.html";
+      });
+    }
+  </script>
+</body>
+</html>

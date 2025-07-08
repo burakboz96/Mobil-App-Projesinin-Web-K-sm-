@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Şehir Keşfet Oyunu</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    #message, #score {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background: green;
+      color: white;
+      border-radius: 8px;
+      font-size: 1rem;
+      z-index: 1000;
+    }
+    #message { top: 20px; }
+    #score { top: 60px; background: #0077b6; }
+    .hidden { display: none; }
+    #helpBtn, #locateBtn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      margin-left: 10px;
+      padding: 10px 15px;
+      background: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    #helpBtn { right: 140px; }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+    }
+    .modal.show { display: flex; }
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+  <div id="message" class="hidden">🎁 Hediye Kazandınız!</div>
+  <div id="score">Puan: 0</div>
+  <button id="helpBtn">Yardım</button>
+  <button id="locateBtn">Konum Takip Et</button>
+
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <h2>Yapmanız Gerekenler</h2>
+      <ul>
+        <li>Haritada ödülleri bulmak için Elazığ'da dolaşın.</li>
+        <li>Konumunuzu izlemek için "Konum Takip Et"e tıklayın.</li>
+        <li>20 metre yaklaşınca hediye toplarsınız!</li>
+      </ul>
+      <button id="closeHelp">Kapat</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const elazigCenter = [38.6786, 39.2205];
+    let userMarker, userCoords, watchId;
+    let rewards = [];
+    let score = 0;
+
+    const map = L.map('map').setView(elazigCenter, 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OSM contributors'
+    }).addTo(map);
+
+    const rewardIcon = L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/616/616489.png',
+      iconSize: [32, 32]
+    });
+
+    const userIcon = L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+      iconSize: [32, 32]
+    });
+
+    function generateRewards() {
+      rewards = [];
+      const latStart = 38.673;
+      const lngStart = 39.215;
+      const latRange = 0.01;
+      const lngRange = 0.01;
+
+      for (let i = 0; i < 10; i++) {
+        const lat = latStart + Math.random() * latRange;
+        const lng = lngStart + Math.random() * lngRange;
+        const marker = L.marker([lat, lng], { icon: rewardIcon }).addTo(map);
+        marker.rewardCollected = false;
+        rewards.push(marker);
+      }
+    }
+
+    function checkProximity() {
+      if (!userCoords) return;
+      rewards.forEach(marker => {
+        if (marker.rewardCollected) return;
+        const dist = map.distance(userCoords, marker.getLatLng());
+        if (dist < 20) {
+          marker.rewardCollected = true;
+          map.removeLayer(marker);
+          score++;
+          updateScore();
+          showMessage("🎉 Tebrikler! Hediye topladınız!");
+        }
+      });
+    }
+
+    function updateScore() {
+      document.getElementById("score").textContent = `Puan: ${score}`;
+    }
+
+    function showMessage(msg) {
+      const message = document.getElementById("message");
+      message.textContent = msg;
+      message.classList.remove("hidden");
+      setTimeout(() => message.classList.add("hidden"), 3000);
+    }
+
+    function startTracking() {
+      if (!navigator.geolocation) {
+        alert("Tarayıcınız konum hizmetini desteklemiyor.");
+        return;
+      }
+
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+
+      watchId = navigator.geolocation.watchPosition(position => {
+        const { latitude, longitude } = position.coords;
+        userCoords = [latitude, longitude];
+
+        if (!userMarker) {
+          userMarker = L.marker(userCoords, { icon: userIcon }).addTo(map);
+        } else {
+          userMarker.setLatLng(userCoords);
+        }
+
+        map.setView(userCoords, 16);
+        checkProximity();
+      }, error => {
+        alert("Konum alınamadı: " + error.message);
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 1000
+      });
+    }
+
+    document.getElementById('locateBtn').addEventListener('click', startTracking);
+    document.getElementById('helpBtn').addEventListener('click', () => {
+      document.getElementById('helpModal').classList.add('show');
+    });
+    document.getElementById('closeHelp').addEventListener('click', () => {
+      document.getElementById('helpModal').classList.remove('show');
+    });
+
+    window.onload = () => {
+      generateRewards();
+    };
+  </script>
+</body>
+</html>

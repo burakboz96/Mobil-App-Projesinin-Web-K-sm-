@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Araba 3D İnceleme - Sketchfab Embed</title>
+  <style>
+    /* Temel reset ve font */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f0f3; /* Açık gri */
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-bottom: 30px;
+      font-weight: 700;
+      color: #111;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    select {
+      padding: 12px 18px;
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(0,0,0,0.1);
+      background: rgba(255 255 255 / 0.8);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      transition: border-color 0.3s ease;
+      width: 320px;
+      cursor: pointer;
+    }
+    select:hover, select:focus {
+      border-color: #0d6efd;
+      outline: none;
+      box-shadow: 0 4px 12px rgba(13,110,253,0.3);
+      background: rgba(255 255 255 / 0.95);
+    }
+
+    .sketchfab-embed-wrapper {
+      width: 800px;
+      height: 600px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(13,110,253,0.3);
+      background: rgba(255 255 255 / 0.6);
+      backdrop-filter: saturate(180%) blur(12px);
+      border: 1px solid rgba(13,110,253,0.3);
+      transition: box-shadow 0.3s ease;
+    }
+    .sketchfab-embed-wrapper:hover {
+      box-shadow: 0 30px 60px rgba(13,110,253,0.5);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 16px;
+      background: transparent;
+      display: block;
+    }
+
+    p.info {
+      font-size: 14px;
+      font-weight: 500;
+      margin: 20px 0 0 0;
+      color: #333;
+      text-align: center;
+      max-width: 800px;
+      line-height: 1.5;
+      background: rgba(255 255 255 / 0.6);
+      padding: 12px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(13,110,253,0.1);
+      backdrop-filter: saturate(180%) blur(12px);
+      user-select: none;
+      transition: background 0.3s ease;
+    }
+    p.info a {
+      color: #0d6efd;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    p.info a:hover {
+      text-decoration: underline;
+    }
+
+    button {
+      margin-top: 40px;
+      padding: 14px 24px;
+      background: #0d6efd;
+      border: none;
+      border-radius: 14px;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      width: 320px;
+      box-shadow: 0 8px 20px rgba(13,110,253,0.4);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    button:hover {
+      background: #0b5ed7;
+      box-shadow: 0 12px 28px rgba(11,94,215,0.6);
+    }
+
+    @media (max-width: 840px) {
+      .sketchfab-embed-wrapper {
+        width: 90vw;
+        height: 60vw;
+      }
+      p.info, button, select {
+        width: 90vw;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Araba 3D İnceleme (Sketchfab Embed)</h1>
+
+  <select id="carSelect" aria-label="Araç Seç">
+    <option value="https://sketchfab.com/models/c78853547a8744a7896e7b755095d66f/embed" data-info='
+      <a href="https://sketchfab.com/3d-models/porche-gt4-c78853547a8744a7896e7b755095d66f" target="_blank" rel="nofollow">Porche GT4</a> by <a href="https://sketchfab.com/TegnoGenial" target="_blank" rel="nofollow">TegnoGenial</a>'>Porsche GT4</option>
+
+    <option value="https://sketchfab.com/models/5ef9b845aaf44203b6d04e2c677e444f/embed" data-info='
+      <a href="https://sketchfab.com/3d-models/tesla-2018-model-3-5ef9b845aaf44203b6d04e2c677e444f" target="_blank" rel="nofollow">Tesla 2018 Model 3</a> by <a href="https://sketchfab.com/uchiha.321abc" target="_blank" rel="nofollow">Ameer Studio</a>'>Tesla Model 3</option>
+
+    <option value="https://sketchfab.com/models/75d636ab26b1423ca61ffd0fd758fd0a/embed" data-info='
+      <a href="https://sketchfab.com/3d-models/audi-rs5-75d636ab26b1423ca61ffd0fd758fd0a" target="_blank" rel="nofollow">Audi RS5</a> by <a href="https://sketchfab.com/WillisChiejina" target="_blank" rel="nofollow">WillisChiejina</a>'>Audi RS5</option>
+  </select>
+
+  <div class="sketchfab-embed-wrapper" id="embedWrapper">
+    <iframe
+      id="sketchfabIframe"
+      src="https://sketchfab.com/models/c78853547a8744a7896e7b755095d66f/embed"
+      allow="autoplay; fullscreen; xr-spatial-tracking"
+      frameborder="0"
+      allowfullscreen
+      mozallowfullscreen="true"
+      webkitallowfullscreen="true"
+      xr-spatial-tracking
+      execution-while-out-of-viewport
+      execution-while-not-rendered
+      web-share
+    ></iframe>
+  </div>
+
+  <p class="info" id="modelInfo">
+    <a href="https://sketchfab.com/3d-models/porche-gt4-c78853547a8744a7896e7b755095d66f" target="_blank" rel="nofollow">Porche GT4</a> by <a href="https://sketchfab.com/TegnoGenial" target="_blank" rel="nofollow">TegnoGenial</a>
+  </p>
+
+  <button onclick="goBack()">Ana Sayfaya Dön</button>
+
+  <script>
+    const select = document.getElementById('carSelect');
+    const iframe = document.getElementById('sketchfabIframe');
+    const info = document.getElementById('modelInfo');
+
+    select.addEventListener('change', () => {
+      const selectedOption = select.options[select.selectedIndex];
+      iframe.src = selectedOption.value;
+      info.innerHTML = selectedOption.getAttribute('data-info');
+    });
+
+    function goBack() {
+      window.history.back();
+    }
+  </script>
+</body>
+</html>
